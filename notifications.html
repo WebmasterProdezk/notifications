@@ -1,0 +1,254 @@
+<style>
+    
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      font-family: "Inter";
+      font-size: 16px;
+      --gradient: linear-gradient(to bottom, #2eadff, #3d83ff, #7e61ff);
+      --color: #32a6ff;
+    }
+     
+    .notifications {
+      min-width: 18rem;
+      max-width: 18rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: end;
+      margin: 0.5rem;
+      overflow-y: hidden; /* Añadido para permitir desplazamiento vertical */
+      max-height: 90vh; /* Ajustar según sea necesario */
+      position: fixed; /* Fijar el contenedor */
+      left: 0; /* Ajustar para fijar a la izquierda */
+      bottom: 0; /* Ajustar para fijar arriba */
+      
+
+    }
+
+  
+    .noti {
+      position: relative;
+      height: 0;
+      transition: height 300ms ease;
+      flex-shrink: 0;
+      opacity: 1;
+      overflow:hidden !important;
+    }
+
+    .noti.out {
+      animation: notiOut 500ms ease forwards;
+    }
+
+    @keyframes notiOut {
+      to {height: 0;}
+    }
+
+    .noticard {
+      position: absolute;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      isolation: isolate;
+      width: 18rem;
+      d-height: 8rem;
+      background: #FFD554;
+      border-radius: 1rem;
+      overflow: hidden;
+      animation: notiCardIn 500ms ease;
+      
+
+    }
+
+    @keyframes notiCardIn {
+      from {
+        transform: translateX(50%);
+        opacity: 0;
+      }
+    }
+
+    .noti.out .noticard {
+      animation: notiCardOut 500ms ease forwards;
+    }
+
+    @keyframes notiCardOut {
+      to {
+        opacity: 0;
+        transform: scale(0.5)
+      }
+    }
+
+    .noticard:before {
+      position: absolute;
+      content: "";
+      inset: 0.0625rem;
+      border-radius: 0.9375rem;
+      background: #18181b;
+      z-index: 2;
+	  overflow:hidden;
+
+    }
+
+    .noticard:after {
+      position: absolute;
+      content: "";
+      width: 0.25rem;
+      inset: 0.65rem auto 0.65rem 0.5rem;
+      border-radius: 0.125rem;
+      background: var(--gradient);
+      transition: transform 300ms ease;
+      z-index: 4;
+	  overflow:hidden;
+
+    }
+
+    .noticard:hover:after {
+      transform: translateX(0.15rem);
+    }
+
+    .notititle {
+      color: #011C2F;
+      padding: 0.65rem 0.5rem 0.4rem 1.25rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+      transition: transform 300ms ease;
+      z-index: 5;
+      background: #E8E8E8;
+      box-shadow: 0px 0px 68px 0px rgba(138,138,138,1);
+      
+    }
+
+    
+
+    .notidesc {
+      color: #011C2F;
+      padding: 0 0.5rem 0.85rem 1.25rem;
+      transition: transform 300ms ease;
+      z-index: 5;
+      background: #E8E8E8;
+    }
+
+  
+
+    .notiglow, .notiborderglow {
+      position: absolute;
+      width: 20rem;
+      height: 20rem;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle closest-side at center, white, transparent);
+      opacity: 0;
+      transition: opacity 300ms ease;
+    }
+
+    .notiglow { z-index: 3;}
+
+    .notiborderglow { z-index: 1; }
+
+    .noti:hover .notiglow {opacity: 0.1}
+
+    .noti:hover .notiborderglow {opacity: 0.1}
+  </style>
+
+ <div class="notifications"></div>
+  <script>
+    class Notifications {
+      constructor(el) {
+        this.el = el;
+      }
+
+      createDiv(className = "") {
+        const el = document.createElement("div");
+        el.classList.add(className);
+        return el;
+      }
+
+      addText(el, text) {
+        el.appendChild(document.createTextNode(text));
+      }
+
+      create(title = "Untitled notification", description = "", duration = 8, destroyOnClick = false, clickFunction = undefined) {
+        const notiEl = this.createDiv("noti");
+        const notiCardEl = this.createDiv("noticard");
+        const glowEl = this.createDiv("notiglow");
+        const borderEl = this.createDiv("notiborderglow");
+
+        const titleEl = this.createDiv("notititle");
+        this.addText(titleEl, title);
+
+        const descriptionEl = this.createDiv("notidesc");
+        this.addText(descriptionEl, description);
+
+        notiEl.appendChild(notiCardEl);
+        notiCardEl.appendChild(glowEl);
+        notiCardEl.appendChild(borderEl);
+        notiCardEl.appendChild(titleEl);
+        notiCardEl.appendChild(descriptionEl);
+
+        this.el.appendChild(notiEl);
+
+        console.log("height", notiCardEl.scrollHeight);
+        requestAnimationFrame(function() {
+          notiEl.style.height = "calc(0.25rem + " + notiCardEl.getBoundingClientRect().height + "px)";
+        });
+
+        notiEl.addEventListener("mousemove", (event) => {
+          const rect = notiCardEl.getBoundingClientRect();
+          const localX = (event.clientX - rect.left) / rect.width;
+          const localY = (event.clientY - rect.top) / rect.height;
+
+          console.log(localX, localY);
+          glowEl.style.left = localX * 100 + "%";
+          glowEl.style.top = localY * 100 + "%";
+
+          borderEl.style.left = localX * 100 + "%";
+          borderEl.style.top = localY * 100 + "%";
+        });
+
+        if (clickFunction !== undefined) {
+          notiEl.addEventListener("click", clickFunction);
+        }
+
+        if (destroyOnClick) {
+          notiEl.addEventListener("click", () => this.destroy(notiEl, true));
+        }
+
+        if (duration !== 0) {
+          setTimeout(() => this.destroy(notiEl, true), duration * 1000);
+        }
+        return notiEl;
+      }
+
+      destroy(element, animate) {
+        if (animate) {
+          element.classList.add("out");
+          element.addEventListener("animationend", () => element.remove());
+        } else {
+          element.remove();
+        }
+      }
+    }
+
+    const notis = new Notifications(document.querySelector(".notifications"));
+
+    const demonotis = [
+      () => {notis.create("¡Ana tambien está interesada!","en crear su empresa en Estados Unidos!", 40);},
+      () => {notis.create("¡Andrés agendó su asesoría!", "¡Ha iniciado su registro! ¡No te quedes atrás, regístrate ahora para no perder tu lugar!", 40);},
+      () => {notis.create("Juan inició su registro", "¡Asegura tu asesoría gratis!", 42);},
+      () => {notis.create("Matías también quiere pagar menos imnpuestos para su empresa!", "¡Visitó nuestra página 3 veces hoy! ¡No dejes que se escape esta oportunidad!", 40);},
+      () => {notis.create("Sebastián", "acabó de complementar el formulario", 40);},
+      () => {notis.create("Laura recibió nuestros bonos de creación de empresas", "Adquiere los tuyos ahora!", 40);},
+      
+      () => {notis.create("¡Otros tres usuarios han empezado el registro!", "Solo los primeros 20 se llevarán $1340 dólares en servicios profesionales sin ningun costo adicional", 40, true, () => notis.create("Surprise", "Wow, you clicked the previous notification,", 4));},
+      
+    ];
+
+    let i = 1;
+    demonotis[0]();
+    setInterval(() => {
+      if (i === demonotis.length) {
+        notis.create("Fin de la demostración", "Reiniciar el ciclo dando click", 0, true, () => {i = 0;});
+      } else if (i < demonotis.length) {
+        demonotis[i]();
+      }
+      i++;
+    }, 40000);
+  </script>
